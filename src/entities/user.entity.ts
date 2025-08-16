@@ -26,6 +26,12 @@ export class User {
   @Column({ default: false })
   is_verified: boolean;
 
+  @Column({ nullable: true })
+  social_provider: string; // 'google', 'facebook', 'github'
+
+  @Column({ nullable: true })
+  social_id: string; // 소셜 제공업체의 사용자 ID
+
   @CreateDateColumn()
   created_at: Date;
 

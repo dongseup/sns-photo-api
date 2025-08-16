@@ -181,4 +181,77 @@ export class AuthService {
       user: result.user,
     };
   }
+
+  async signInWithGoogle() {
+    // 구글 소셜 로그인 URL 생성
+    const result = await this.supabaseAuthService.signInWithGoogle();
+    
+    return {
+      message: result.message,
+      url: result.url,
+    };
+  }
+
+  async signInWithFacebook() {
+    // 페이스북 소셜 로그인 URL 생성
+    const result = await this.supabaseAuthService.signInWithFacebook();
+    
+    return {
+      message: result.message,
+      url: result.url,
+    };
+  }
+
+  async signInWithGithub() {
+    // 깃허브 소셜 로그인 URL 생성
+    const result = await this.supabaseAuthService.signInWithGithub();
+    
+    return {
+      message: result.message,
+      url: result.url,
+    };
+  }
+
+  async handleSocialCallback(code: string, state: string) {
+    // 소셜 로그인 콜백 처리
+    const result = await this.supabaseAuthService.handleSocialCallback(code, state);
+    
+    // 로컬 데이터베이스에서 사용자 정보 확인/생성
+    let user = await this.userRepository.findOne({
+      where: { email: result.user.email },
+    });
+
+    if (!user) {
+      // 새로운 소셜 사용자 생성
+      const socialUserData = result.user.user_metadata || {};
+      user = this.userRepository.create({
+        id: result.user.id,
+        email: result.user.email,
+        username: socialUserData.username || socialUserData.name || `user_${Date.now()}`,
+        password: '', // 소셜 사용자는 비밀번호 없음
+        bio: socialUserData.bio || '',
+        is_verified: true, // 소셜 사용자는 자동 인증
+        profile_image: socialUserData.avatar_url || socialUserData.picture || '',
+      });
+      
+      await this.userRepository.save(user);
+    }
+
+    // JWT 토큰 생성
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      message: '소셜 로그인이 완료되었습니다.',
+      access_token: accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_verified: user.is_verified,
+        profile_image: user.profile_image,
+      },
+      supabaseSession: result.session,
+    };
+  }
 }

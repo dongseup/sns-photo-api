@@ -64,6 +64,29 @@ POST /auth/logout
 Authorization: Bearer YOUR_JWT_TOKEN
 ```
 
+### 구글 소셜 로그인 URL 생성
+```http
+POST /auth/google
+Content-Type: application/json
+```
+
+### 페이스북 소셜 로그인 URL 생성
+```http
+POST /auth/facebook
+Content-Type: application/json
+```
+
+### 깃허브 소셜 로그인 URL 생성
+```http
+POST /auth/github
+Content-Type: application/json
+```
+
+### 소셜 로그인 콜백 처리
+```http
+GET /auth/callback?code=YOUR_AUTH_CODE&state=YOUR_STATE
+```
+
 ## 사진 API
 
 ### 사진 목록 조회

@@ -241,4 +241,132 @@ export class SupabaseAuthService {
       throw new UnauthorizedException('세션 새로고침 중 오류가 발생했습니다.');
     }
   }
+
+  /**
+   * 구글 소셜 로그인
+   */
+  async signInWithGoogle() {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${this.configService.get<string>('FRONTEND_URL')}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        url: data.url,
+        message: '구글 로그인 URL이 생성되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('구글 로그인 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 페이스북 소셜 로그인
+   */
+  async signInWithFacebook() {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithOAuth({
+        provider: 'facebook',
+        options: {
+          redirectTo: `${this.configService.get<string>('FRONTEND_URL')}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        url: data.url,
+        message: '페이스북 로그인 URL이 생성되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('페이스북 로그인 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 깃허브 소셜 로그인
+   */
+  async signInWithGithub() {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${this.configService.get<string>('FRONTEND_URL')}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        url: data.url,
+        message: '깃허브 로그인 URL이 생성되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('깃허브 로그인 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 소셜 로그인 콜백 처리
+   */
+  async handleSocialCallback(code: string, state: string) {
+    try {
+      const { data, error } = await this.supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        user: data.user,
+        session: data.session,
+        message: '소셜 로그인이 완료되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('소셜 로그인 콜백 처리 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 소셜 로그인 사용자 정보 가져오기
+   */
+  async getSocialUserInfo(accessToken: string) {
+    try {
+      const { data: { user }, error } = await this.supabase.auth.getUser(accessToken);
+
+      if (error) {
+        throw new UnauthorizedException(error.message);
+      }
+
+      return user;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('소셜 사용자 정보를 가져오는 중 오류가 발생했습니다.');
+    }
+  }
 }

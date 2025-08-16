@@ -157,3 +157,20 @@ GET http://localhost:3000/api/users/USER_ID/following?page=1&limit=10
 ### 27. 팔로우 상태 확인 (인증 필요)
 GET http://localhost:3000/api/users/USER_ID/is-following
 Authorization: Bearer YOUR_JWT_TOKEN
+
+### ===== 소셜 로그인 =====
+
+### 28. 구글 소셜 로그인 URL 생성
+POST http://localhost:3000/api/auth/google
+Content-Type: application/json
+
+### 29. 페이스북 소셜 로그인 URL 생성
+POST http://localhost:3000/api/auth/facebook
+Content-Type: application/json
+
+### 30. 깃허브 소셜 로그인 URL 생성
+POST http://localhost:3000/api/auth/github
+Content-Type: application/json
+
+### 31. 소셜 로그인 콜백 처리 (GET 요청)
+GET http://localhost:3000/api/auth/callback?code=YOUR_AUTH_CODE&state=YOUR_STATE

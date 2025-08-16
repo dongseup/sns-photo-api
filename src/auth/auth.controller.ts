@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Request } from '@nestjs/common';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Request, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
@@ -59,5 +59,28 @@ export class AuthController {
     @Request() req
   ) {
     return this.authService.updatePassword(updatePasswordDto.newPassword);
+  }
+
+  @Post('google')
+  async signInWithGoogle() {
+    return this.authService.signInWithGoogle();
+  }
+
+  @Post('facebook')
+  async signInWithFacebook() {
+    return this.authService.signInWithFacebook();
+  }
+
+  @Post('github')
+  async signInWithGithub() {
+    return this.authService.signInWithGithub();
+  }
+
+  @Get('callback')
+  async handleSocialCallback(
+    @Query('code') code: string,
+    @Query('state') state: string,
+  ) {
+    return this.authService.handleSocialCallback(code, state);
   }
 }
