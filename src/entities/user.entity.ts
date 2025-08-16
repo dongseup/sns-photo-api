@@ -14,6 +14,9 @@ export class User {
   @Column({ unique: true })
   username: string;
 
+  @Column({ select: false }) // 기본적으로 조회에서 제외
+  password: string;
+
   @Column({ nullable: true })
   profile_image: string;
 
