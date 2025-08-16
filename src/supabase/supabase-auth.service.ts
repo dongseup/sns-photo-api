@@ -7,10 +7,14 @@ export class SupabaseAuthService {
   private supabase: SupabaseClient;
 
   constructor(private configService: ConfigService) {
-    this.supabase = createClient(
-      this.configService.get<string>('SUPABASE_URL'),
-      this.configService.get<string>('SUPABASE_ANON_KEY')
-    );
+    const supabaseUrl = this.configService.get<string>('SUPABASE_URL');
+    const supabaseKey = this.configService.get<string>('SUPABASE_ANON_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('SUPABASE_URL과 SUPABASE_ANON_KEY가 설정되지 않았습니다.');
+    }
+    
+    this.supabase = createClient(supabaseUrl, supabaseKey);
   }
 
   /**
