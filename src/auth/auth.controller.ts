@@ -2,6 +2,7 @@ import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards, Get, Request }
 import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
+import { ResetPasswordDto, UpdatePasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -43,5 +44,20 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logout(@Request() req) {
     return this.authService.logout(req.user.id);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto.email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('update-password')
+  @HttpCode(HttpStatus.OK)
+  async updatePassword(
+    @Body() updatePasswordDto: UpdatePasswordDto,
+    @Request() req
+  ) {
+    return this.authService.updatePassword(updatePasswordDto.newPassword);
   }
 }
