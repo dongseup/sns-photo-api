@@ -1,37 +1,29 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import * as bcrypt from 'bcryptjs';
-import { User } from '../entities/user.entity';
+import { SupabaseAuthService } from '../supabase/supabase-auth.service';
+import { SupabaseDatabaseService } from '../supabase/supabase-database.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
-import { SupabaseAuthService } from '../supabase/supabase-auth.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
     private readonly supabaseAuthService: SupabaseAuthService,
+    private readonly supabaseDatabaseService: SupabaseDatabaseService,
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
     const { email, username, password, bio } = signUpDto;
 
     // 이메일 중복 확인
-    const existingUserByEmail = await this.userRepository.findOne({
-      where: { email },
-    });
+    const existingUserByEmail = await this.supabaseDatabaseService.getUserByEmail(email);
     if (existingUserByEmail) {
       throw new ConflictException('이미 사용 중인 이메일입니다.');
     }
 
     // 사용자명 중복 확인
-    const existingUserByUsername = await this.userRepository.findOne({
-      where: { username },
-    });
+    const existingUserByUsername = await this.supabaseDatabaseService.getUserByUsername(username);
     if (existingUserByUsername) {
       throw new ConflictException('이미 사용 중인 사용자명입니다.');
     }
@@ -42,25 +34,25 @@ export class AuthService {
       bio,
     });
 
-    // 로컬 데이터베이스에 사용자 정보 저장
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = this.userRepository.create({
+    if (!supabaseResult.user) {
+      throw new BadRequestException('회원가입 중 오류가 발생했습니다.');
+    }
+
+    // Supabase Database에 사용자 프로필 저장
+    const userProfile = await this.supabaseDatabaseService.createUserProfile({
+      id: supabaseResult.user.id,
       email,
       username,
-      password: hashedPassword,
       bio,
-      is_verified: false,
     });
-
-    const savedUser = await this.userRepository.save(user);
 
     return {
       message: '회원가입이 완료되었습니다. 이메일을 확인해주세요.',
       user: {
-        id: savedUser.id,
-        email: savedUser.email,
-        username: savedUser.username,
-        is_verified: savedUser.is_verified,
+        id: userProfile.id,
+        email: userProfile.email,
+        username: userProfile.username,
+        is_verified: userProfile.is_verified,
       },
       supabaseUser: supabaseResult.user,
     };
@@ -72,11 +64,8 @@ export class AuthService {
     // Supabase Auth로 로그인
     const supabaseResult = await this.supabaseAuthService.signIn(email, password);
 
-    // 로컬 데이터베이스에서 사용자 정보 가져오기
-    const user = await this.userRepository.findOne({
-      where: { email },
-      select: ['id', 'email', 'username', 'is_verified'],
-    });
+    // Supabase Database에서 사용자 정보 가져오기
+    const user = await this.supabaseDatabaseService.getUserByEmail(email);
 
     if (!user) {
       throw new UnauthorizedException('사용자 정보를 찾을 수 없습니다.');
@@ -99,6 +88,7 @@ export class AuthService {
         email: user.email,
         username: user.username,
         is_verified: user.is_verified,
+        profile_image: user.profile_image,
       },
       supabaseSession: supabaseResult.session,
     };
@@ -108,18 +98,17 @@ export class AuthService {
     // Supabase Auth로 이메일 인증
     const supabaseResult = await this.supabaseAuthService.verifyEmail(email, token);
 
-    // 로컬 데이터베이스에서 사용자 정보 업데이트
-    const user = await this.userRepository.findOne({
-      where: { email },
-    });
+    // Supabase Database에서 사용자 정보 업데이트
+    const user = await this.supabaseDatabaseService.getUserByEmail(email);
 
     if (!user) {
       throw new BadRequestException('사용자를 찾을 수 없습니다.');
     }
 
     // 사용자 인증 상태 업데이트
-    user.is_verified = true;
-    await this.userRepository.save(user);
+    await this.supabaseDatabaseService.updateUserProfile(user.id, {
+      is_verified: true,
+    });
 
     return {
       message: '이메일 인증이 완료되었습니다.',
@@ -127,16 +116,14 @@ export class AuthService {
         id: user.id,
         email: user.email,
         username: user.username,
-        is_verified: user.is_verified,
+        is_verified: true,
       },
       supabaseUser: supabaseResult.user,
     };
   }
 
   async resendVerification(email: string) {
-    const user = await this.userRepository.findOne({
-      where: { email },
-    });
+    const user = await this.supabaseDatabaseService.getUserByEmail(email);
 
     if (!user) {
       throw new BadRequestException('사용자를 찾을 수 없습니다.');
@@ -216,25 +203,27 @@ export class AuthService {
     // 소셜 로그인 콜백 처리
     const result = await this.supabaseAuthService.handleSocialCallback(code, state);
     
-    // 로컬 데이터베이스에서 사용자 정보 확인/생성
-    let user = await this.userRepository.findOne({
-      where: { email: result.user.email },
-    });
+    if (!result.user?.email) {
+      throw new BadRequestException('소셜 로그인에서 이메일 정보를 가져올 수 없습니다.');
+    }
+    
+    // Supabase Database에서 사용자 정보 확인/생성
+    let user = await this.supabaseDatabaseService.getUserByEmail(result.user.email);
 
     if (!user) {
       // 새로운 소셜 사용자 생성
       const socialUserData = result.user.user_metadata || {};
-      user = this.userRepository.create({
+      const socialProvider = result.user.app_metadata?.provider || 'unknown';
+      
+      user = await this.supabaseDatabaseService.createUserProfile({
         id: result.user.id,
         email: result.user.email,
         username: socialUserData.username || socialUserData.name || `user_${Date.now()}`,
-        password: '', // 소셜 사용자는 비밀번호 없음
         bio: socialUserData.bio || '',
-        is_verified: true, // 소셜 사용자는 자동 인증
         profile_image: socialUserData.avatar_url || socialUserData.picture || '',
+        social_provider: socialProvider,
+        social_id: result.user.id,
       });
-      
-      await this.userRepository.save(user);
     }
 
     // JWT 토큰 생성
@@ -252,6 +241,26 @@ export class AuthService {
         profile_image: user.profile_image,
       },
       supabaseSession: result.session,
+    };
+  }
+
+  async getCurrentUser(userId: string) {
+    const user = await this.supabaseDatabaseService.getUserProfile(userId);
+    
+    if (!user) {
+      throw new UnauthorizedException('사용자 정보를 찾을 수 없습니다.');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      bio: user.bio,
+      profile_image: user.profile_image,
+      is_verified: user.is_verified,
+      social_provider: user.social_provider,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
     };
   }
 }
