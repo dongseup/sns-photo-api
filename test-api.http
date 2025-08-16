@@ -174,3 +174,39 @@ Content-Type: application/json
 
 ### 31. 소셜 로그인 콜백 처리 (GET 요청)
 GET http://localhost:3000/api/auth/callback?code=YOUR_AUTH_CODE&state=YOUR_STATE
+
+### ===== 인증번호 발송 기능 =====
+
+### 32. SMS 인증번호 발송
+POST http://localhost:3000/api/auth/sms/send
+Content-Type: application/json
+
+{
+  "phoneNumber": "+821012345678"
+}
+
+### 33. SMS 인증번호 확인
+POST http://localhost:3000/api/auth/sms/verify
+Content-Type: application/json
+
+{
+  "phoneNumber": "+821012345678",
+  "token": "123456"
+}
+
+### 34. 이메일 OTP 인증번호 발송
+POST http://localhost:3000/api/auth/email-otp/send
+Content-Type: application/json
+
+{
+  "email": "test@example.com"
+}
+
+### 35. 이메일 OTP 인증번호 확인
+POST http://localhost:3000/api/auth/email-otp/verify
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "token": "123456"
+}

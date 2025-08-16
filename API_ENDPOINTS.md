@@ -87,6 +87,48 @@ Content-Type: application/json
 GET /auth/callback?code=YOUR_AUTH_CODE&state=YOUR_STATE
 ```
 
+### SMS 인증번호 발송
+```http
+POST /auth/sms/send
+Content-Type: application/json
+
+{
+  "phoneNumber": "+821012345678"
+}
+```
+
+### SMS 인증번호 확인
+```http
+POST /auth/sms/verify
+Content-Type: application/json
+
+{
+  "phoneNumber": "+821012345678",
+  "token": "123456"
+}
+```
+
+### 이메일 OTP 인증번호 발송
+```http
+POST /auth/email-otp/send
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+```
+
+### 이메일 OTP 인증번호 확인
+```http
+POST /auth/email-otp/verify
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "token": "123456"
+}
+```
+
 ## 사진 API
 
 ### 사진 목록 조회

@@ -263,4 +263,106 @@ export class AuthService {
       updated_at: user.updated_at,
     };
   }
+
+  async sendSmsOtp(phoneNumber: string) {
+    // SMS 인증번호 발송
+    const result = await this.supabaseAuthService.sendSmsOtp(phoneNumber);
+    
+    return {
+      message: result.message,
+      phoneNumber: result.phoneNumber,
+    };
+  }
+
+  async verifySmsOtp(phoneNumber: string, token: string) {
+    // SMS 인증번호 확인
+    const result = await this.supabaseAuthService.verifySmsOtp(phoneNumber, token);
+    
+    if (!result.user?.email) {
+      throw new BadRequestException('SMS 인증에서 이메일 정보를 가져올 수 없습니다.');
+    }
+
+    // Supabase Database에서 사용자 정보 확인/생성
+    let user = await this.supabaseDatabaseService.getUserByEmail(result.user.email);
+
+    if (!user) {
+      // 새로운 SMS 사용자 생성
+      user = await this.supabaseDatabaseService.createUserProfile({
+        id: result.user.id,
+        email: result.user.email,
+        username: `user_${Date.now()}`,
+        bio: '',
+        phone_number: phoneNumber,
+        is_verified: true,
+        auth_method: 'sms',
+      });
+    }
+
+    // JWT 토큰 생성
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      message: 'SMS 인증이 완료되었습니다.',
+      access_token: accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_verified: user.is_verified,
+        phone_number: user.phone_number,
+      },
+      supabaseSession: result.session,
+    };
+  }
+
+  async sendEmailOtp(email: string) {
+    // 이메일 인증번호 발송 (OTP)
+    const result = await this.supabaseAuthService.sendEmailOtp(email);
+    
+    return {
+      message: result.message,
+      email: result.email,
+    };
+  }
+
+  async verifyEmailOtp(email: string, token: string) {
+    // 이메일 인증번호 확인 (OTP)
+    const result = await this.supabaseAuthService.verifyEmailOtp(email, token);
+    
+    if (!result.user?.email) {
+      throw new BadRequestException('이메일 인증에서 사용자 정보를 가져올 수 없습니다.');
+    }
+
+    // Supabase Database에서 사용자 정보 확인/생성
+    let user = await this.supabaseDatabaseService.getUserByEmail(result.user.email);
+
+    if (!user) {
+      // 새로운 이메일 OTP 사용자 생성
+      user = await this.supabaseDatabaseService.createUserProfile({
+        id: result.user.id,
+        email: result.user.email,
+        username: `user_${Date.now()}`,
+        bio: '',
+        is_verified: true,
+        auth_method: 'email_otp',
+      });
+    }
+
+    // JWT 토큰 생성
+    const payload = { sub: user.id, email: user.email };
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      message: '이메일 인증이 완료되었습니다.',
+      access_token: accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        is_verified: user.is_verified,
+      },
+      supabaseSession: result.session,
+    };
+  }
 }

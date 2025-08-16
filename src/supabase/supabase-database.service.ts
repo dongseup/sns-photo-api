@@ -29,6 +29,8 @@ export class SupabaseDatabaseService {
     social_provider?: string;
     social_id?: string;
     is_verified?: boolean;
+    phone_number?: string;
+    auth_method?: string;
   }) {
     try {
       const { data, error } = await this.supabase

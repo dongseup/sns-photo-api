@@ -369,4 +369,117 @@ export class SupabaseAuthService {
       throw new UnauthorizedException('소셜 사용자 정보를 가져오는 중 오류가 발생했습니다.');
     }
   }
+
+  /**
+   * SMS 인증번호 발송
+   */
+  async sendSmsOtp(phoneNumber: string) {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithOtp({
+        phone: phoneNumber,
+        options: {
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        message: 'SMS 인증번호가 발송되었습니다.',
+        phoneNumber,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('SMS 인증번호 발송 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * SMS 인증번호 확인
+   */
+  async verifySmsOtp(phoneNumber: string, token: string) {
+    try {
+      const { data, error } = await this.supabase.auth.verifyOtp({
+        phone: phoneNumber,
+        token,
+        type: 'sms',
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        user: data.user,
+        session: data.session,
+        message: 'SMS 인증이 완료되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('SMS 인증번호 확인 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 이메일 인증번호 발송 (OTP)
+   */
+  async sendEmailOtp(email: string) {
+    try {
+      const { data, error } = await this.supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: `${this.configService.get<string>('FRONTEND_URL')}/auth/verify`,
+        },
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        message: '이메일 인증번호가 발송되었습니다.',
+        email,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('이메일 인증번호 발송 중 오류가 발생했습니다.');
+    }
+  }
+
+  /**
+   * 이메일 인증번호 확인 (OTP)
+   */
+  async verifyEmailOtp(email: string, token: string) {
+    try {
+      const { data, error } = await this.supabase.auth.verifyOtp({
+        email,
+        token,
+        type: 'email',
+      });
+
+      if (error) {
+        throw new BadRequestException(error.message);
+      }
+
+      return {
+        user: data.user,
+        session: data.session,
+        message: '이메일 인증이 완료되었습니다.',
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new BadRequestException('이메일 인증번호 확인 중 오류가 발생했습니다.');
+    }
+  }
 }

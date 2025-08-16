@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { SignUpDto } from './dto/sign-up.dto';
 import { SignInDto } from './dto/sign-in.dto';
 import { ResetPasswordDto, UpdatePasswordDto } from './dto/reset-password.dto';
+import { SendSmsOtpDto, VerifySmsOtpDto, SendEmailOtpDto, VerifyEmailOtpDto } from './dto/otp.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
@@ -88,5 +89,25 @@ export class AuthController {
     @Query('state') state: string,
   ) {
     return this.authService.handleSocialCallback(code, state);
+  }
+
+  @Post('sms/send')
+  async sendSmsOtp(@Body() sendSmsOtpDto: SendSmsOtpDto) {
+    return this.authService.sendSmsOtp(sendSmsOtpDto.phoneNumber);
+  }
+
+  @Post('sms/verify')
+  async verifySmsOtp(@Body() verifySmsOtpDto: VerifySmsOtpDto) {
+    return this.authService.verifySmsOtp(verifySmsOtpDto.phoneNumber, verifySmsOtpDto.token);
+  }
+
+  @Post('email-otp/send')
+  async sendEmailOtp(@Body() sendEmailOtpDto: SendEmailOtpDto) {
+    return this.authService.sendEmailOtp(sendEmailOtpDto.email);
+  }
+
+  @Post('email-otp/verify')
+  async verifyEmailOtp(@Body() verifyEmailOtpDto: VerifyEmailOtpDto) {
+    return this.authService.verifyEmailOtp(verifyEmailOtpDto.email, verifyEmailOtpDto.token);
   }
 }
