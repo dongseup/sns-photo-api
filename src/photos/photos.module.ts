@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './photos.service';
-import { Photo, User, Like, Comment } from '../entities';
+import { SupabaseModule } from '../supabase/supabase.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Photo, User, Like, Comment])],
+  imports: [SupabaseModule],
   controllers: [PhotosController],
   providers: [PhotosService],
   exports: [PhotosService],
